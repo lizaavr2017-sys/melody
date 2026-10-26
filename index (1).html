@@ -1,0 +1,1426 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Мелодика — музыкальные квизы</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: студия телевикторины — глубокий кобальт, табло из золотых ламп, одна колонка по центру */
+:root{
+  --bg:#0d1450; --bg2:#141d6b; --panel:#1a2480; --line:#2c3a9e;
+  --fg:#eef0ff; --muted:#9aa3e0; --gold:#ffc83d; --gold-ink:#2a1c00;
+  --ok:#3ee0a0; --bad:#ff6b6b;
+  --display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --body:"Golos Text",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:14px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 var(--body);
+  background-image:radial-gradient(ellipse 80% 50% at 50% -10%,#2a3bc4 0%,transparent 70%);
+  background-attachment:fixed}
+[hidden]{display:none!important}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--gold)}
+.wrap{max-width:880px;margin:0 auto;padding-block:20px 60px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:28px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font:900 22px/1 var(--display);letter-spacing:.02em;cursor:pointer;background:none;border:0;padding:0}
+.eq{display:flex;align-items:flex-end;gap:3px;height:22px}
+.eq i{display:block;width:5px;background:var(--gold);border-radius:2px;height:40%}
+.eq i:nth-child(2){height:90%}.eq i:nth-child(3){height:60%}.eq i:nth-child(4){height:75%}
+body.playing .eq i{animation:eq .9s ease-in-out infinite alternate}
+body.playing .eq i:nth-child(2){animation-delay:-.3s}body.playing .eq i:nth-child(3){animation-delay:-.6s}body.playing .eq i:nth-child(4){animation-delay:-.15s}
+@keyframes eq{from{height:20%}to{height:100%}}
+
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(28px,6vw,46px);font-weight:900}
+h2{font-size:22px;font-weight:700}
+h3{font-size:16px;font-weight:700}
+.muted{color:var(--muted)}
+.label{font:600 12px/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--bg2);
+  border-radius:999px;padding:10px 18px;font-weight:600;cursor:pointer;transition:transform .08s,background .15s;white-space:nowrap}
+.btn:hover{background:var(--panel)}
+.btn:active{transform:scale(.97)}
+.btn.gold{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
+.btn.gold:hover{filter:brightness(1.06)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:6px 12px;font-size:14px}
+.btn.icon{width:36px;height:36px;padding:0}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+input[type=text],input[type=url],input[type=number],select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+input:focus,select:focus,textarea:focus{border-color:var(--gold);outline:none}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row>.grow{flex:1 1 220px;min-width:0}
+.stack{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+
+/* home */
+.hero{display:grid;gap:14px;margin-bottom:32px}
+.hero p{max-width:60ch;margin:0;color:var(--muted)}
+.quizlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.qcard{display:flex;flex-direction:column;gap:12px}
+.qcard .covers{display:flex;height:56px}
+.qcard .covers img,.qcard .covers span{width:56px;height:56px;border-radius:8px;object-fit:cover;border:2px solid var(--panel);margin-right:-14px;background:var(--bg2)}
+.qcard .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
+.empty{border:2px dashed var(--line);border-radius:var(--r);padding:28px;text-align:center;color:var(--muted)}
+
+/* editor */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tab{border:1px solid var(--line);background:transparent;border-radius:999px;padding:7px 14px;cursor:pointer;font-weight:500;font-size:14px}
+.tab[aria-selected=true]{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
+.results{display:flex;flex-direction:column;gap:6px;margin-top:12px;max-height:380px;overflow:auto}
+.track{display:flex;align-items:center;gap:12px;padding:8px;border-radius:10px;background:var(--bg2)}
+.track img,.track .ph{width:44px;height:44px;border-radius:6px;object-fit:cover;flex:none;background:var(--bg);display:grid;place-items:center;font-size:18px}
+.track .meta{flex:1;min-width:0}
+.track .meta b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.track .meta span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);font-size:14px}
+.badge{font:700 10px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:4px 6px;border-radius:5px;background:var(--bg);color:var(--muted);flex:none}
+.badge.yandex{color:#ffdb4d}.badge.itunes{color:#ff8fb1}.badge.deezer{color:#b48cff}.badge.url,.badge.file{color:var(--ok)}
+.badge.mat{background:var(--bad);color:#2a0000}.badge.clean{color:var(--ok)}.badge.unk{color:var(--muted)}
+.qrow.flagged{box-shadow:inset 3px 0 0 var(--bad)}
+.qrow{display:grid;grid-template-columns:28px 44px 1fr;gap:12px;align-items:center;padding:10px;border-radius:12px;background:var(--bg2)}
+.qrow .num{font:700 14px var(--mono);color:var(--gold);text-align:center}
+.qrow .ctl{grid-column:3;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.qrow .ctl select{width:auto;padding:6px 10px;font-size:14px}
+.qrow .ctl input{width:84px;padding:6px 10px;font-size:14px}
+.qrow img,.qrow .ph{width:44px;height:44px;border-radius:6px;object-fit:cover;background:var(--bg);display:grid;place-items:center}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.field{display:flex;flex-direction:column;gap:6px}
+.hint{font-size:14px;color:var(--muted);margin:0}
+.note{font-size:14px;padding:12px 14px;border-radius:10px;background:var(--bg2);border-left:3px solid var(--gold);color:var(--muted)}
+
+/* play */
+.board{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.lamps{display:flex;gap:5px;flex-wrap:wrap}
+.lamps i{width:12px;height:12px;border-radius:50%;background:var(--line)}
+.lamps i.done{background:var(--gold);box-shadow:0 0 8px var(--gold)}
+.lamps i.cur{background:var(--fg);box-shadow:0 0 10px var(--fg)}
+.score{font:700 28px/1 var(--mono);color:var(--gold);font-variant-numeric:tabular-nums}
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:28px 20px;text-align:center;display:flex;flex-direction:column;gap:20px;align-items:center}
+.disc{width:150px;height:150px;border-radius:50%;position:relative;
+  background:repeating-radial-gradient(circle,#0a0f3a 0 2px,#151c5e 2px 4px);border:4px solid #0a0f3a;box-shadow:0 10px 30px #0006;display:grid;place-items:center}
+.disc::after{content:"";width:46px;height:46px;border-radius:50%;background:var(--gold);box-shadow:inset 0 0 0 8px #e6a800}
+.disc.spin{animation:spin 2.4s linear infinite}
+.disc img{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover}
+.disc.revealed::after{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.playbtn{width:84px;height:84px;border-radius:50%;font-size:30px;padding:0}
+.timer{width:100%;max-width:520px;height:10px;border-radius:999px;background:var(--bg);overflow:hidden}
+.timer i{display:block;height:100%;background:var(--gold);width:100%;transform-origin:left}
+.tnum{font:700 18px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%;max-width:620px}
+@media (max-width:520px){.opts{grid-template-columns:1fr}}
+.opt{background:var(--bg2);border:2px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;font-weight:600;text-align:left;display:flex;gap:10px;align-items:center;min-height:58px;transition:border-color .15s,background .15s}
+.opt:hover:not(:disabled){border-color:var(--gold)}
+.opt kbd{font:700 13px var(--mono);color:var(--gold);flex:none}
+.opt.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,var(--bg2))}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 18%,var(--bg2))}
+.opt:disabled{cursor:default}
+.answer{display:flex;flex-direction:column;gap:4px}
+.answer .big{font:700 clamp(20px,4vw,28px)/1.2 var(--display)}
+.verdict{font:900 18px var(--display);letter-spacing:.04em}
+.verdict.ok{color:var(--ok)}.verdict.no{color:var(--bad)}
+.ymwrap{position:relative;width:100%;max-width:560px;border-radius:12px;overflow:hidden}
+.ymwrap iframe{width:100%;height:180px;border:0;display:block}
+.ymwrap.masked iframe{filter:blur(9px) saturate(.6)}
+.teams{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;width:100%}
+.team{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;align-items:center}
+.team .pts{font:700 26px var(--mono);color:var(--gold)}
+.team .row{justify-content:center}
+.final{display:flex;flex-direction:column;gap:10px;width:100%;max-width:480px}
+.final .line{display:flex;justify-content:space-between;padding:12px 16px;border-radius:12px;background:var(--bg2);font-weight:600}
+.final .line:first-child{background:var(--gold);color:var(--gold-ink)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:600;z-index:50;max-width:calc(100% - 32px)}
+.modal{position:fixed;inset:0;background:#05082acc;display:grid;place-items:center;z-index:40;padding:16px}
+.modal .card{max-width:520px;width:100%}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <button class="logo" id="goHome" aria-label="На главную"><span class="eq"><i></i><i></i><i></i><i></i></span>Мелодика</button>
+    <div class="row" id="topActions"></div>
+  </header>
+  <main id="app"></main>
+</div>
+<div class="toast" id="toast" hidden></div>
+<div class="modal" id="modal" hidden><div class="card stack" id="modalBody"></div></div>
+
+<script>
+"use strict";
+// исходник страницы до отрисовки — из него собирается скачиваемая файл-игра
+const PAGE_SRC = "<!doctype html>\n" + document.documentElement.outerHTML
+  .replace(/<script id="melodika-preset">[\s\S]*?<\/script>/, "");
+/* ================= утилиты ================= */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Math.random().toString(36).slice(2, 10);
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+let toastT;
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
+
+function jsonp(url, cbParam = "callback") {
+  return new Promise((resolve, reject) => {
+    const cb = "jp_" + uid();
+    const s = document.createElement("script");
+    const done = () => { clearTimeout(t); delete window[cb]; s.remove(); };
+    const t = setTimeout(() => { done(); reject(new Error("Источник не ответил за 10 секунд")); }, 10000);
+    window[cb] = d => { done(); resolve(d); };
+    s.onerror = () => { done(); reject(new Error("Источник недоступен из вашей сети")); };
+    s.src = url + (url.includes("?") ? "&" : "?") + cbParam + "=" + cb;
+    document.head.appendChild(s);
+  });
+}
+
+/* ================= хранилище ================= */
+const LS_KEY = "melodika.quizzes.v1";
+function loadQuizzes() { try { return JSON.parse(localStorage.getItem(LS_KEY)) || null; } catch { return null; } }
+function saveQuizzes() { try { localStorage.setItem(LS_KEY, JSON.stringify(state.quizzes)); } catch { toast("Не удалось сохранить: память браузера недоступна"); } }
+
+// IndexedDB для загруженных аудиофайлов
+const idb = {
+  db: null,
+  open() {
+    if (this.db) return Promise.resolve(this.db);
+    return new Promise((res, rej) => {
+      const r = indexedDB.open("melodika-files", 1);
+      r.onupgradeneeded = () => r.result.createObjectStore("files");
+      r.onsuccess = () => { this.db = r.result; res(this.db); };
+      r.onerror = () => rej(r.error);
+    });
+  },
+  async put(key, blob) { const db = await this.open(); return new Promise((res, rej) => { const tx = db.transaction("files", "readwrite"); tx.objectStore("files").put(blob, key); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); },
+  async get(key) { const db = await this.open(); return new Promise((res, rej) => { const r = db.transaction("files").objectStore("files").get(key); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); },
+  async del(key) { const db = await this.open(); db.transaction("files", "readwrite").objectStore("files").delete(key); }
+};
+
+/* ================= источники музыки ================= */
+const SOURCES = {
+  itunes: {
+    name: "Apple / iTunes",
+    async search(q, country) {
+      const d = await jsonp(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=15&country=${country}`);
+      return (d.results || []).filter(r => r.previewUrl).map(r => ({
+        source: "itunes", ref: String(r.trackId), artist: r.artistName, title: r.trackName,
+        cover: (r.artworkUrl100 || "").replace("100x100", "300x300"), preview: r.previewUrl, country,
+        explicit: r.trackExplicitness === "explicit"
+      }));
+    },
+    async resolve(q) {
+      if (q.ref) {
+        const d = await jsonp(`https://itunes.apple.com/lookup?id=${q.ref}&country=${q.country || "US"}`);
+        const r = d.results && d.results[0];
+        if (r && r.previewUrl) return r.previewUrl;
+      }
+      // запасной путь: найти по исполнителю и названию
+      const found = await this.search(`${q.artist} ${q.title}`, q.country || "US");
+      if (!found.length) throw new Error("Трек не найден в iTunes");
+      Object.assign(q, { ref: found[0].ref, cover: q.cover || found[0].cover });
+      saveQuizzes();
+      return found[0].preview;
+    }
+  },
+  deezer: {
+    name: "Deezer",
+    async search(q) {
+      const d = await jsonp(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=15&output=jsonp`);
+      if (d.error) throw new Error(d.error.message || "Ошибка Deezer");
+      return (d.data || []).filter(r => r.preview).map(r => ({
+        source: "deezer", ref: String(r.id), artist: r.artist?.name, title: r.title,
+        cover: r.album?.cover_medium || "", preview: r.preview, explicit: !!r.explicit_lyrics
+      }));
+    },
+    async resolve(q) {
+      // ссылки превью Deezer подписаны и устаревают, поэтому берём свежую
+      const d = await jsonp(`https://api.deezer.com/track/${q.ref}?output=jsonp`);
+      if (!d.preview) throw new Error("Deezer не отдал превью этого трека");
+      return d.preview;
+    }
+  },
+  url: { async resolve(q) { return q.ref; } },
+  file: {
+    async resolve(q) {
+      const blob = await idb.get(q.ref);
+      if (!blob) throw new Error("Файл не найден в этом браузере. Загрузите его заново в редакторе.");
+      return URL.createObjectURL(blob);
+    }
+  }
+};
+
+// Яндекс Музыка: из ссылки или HTML-кода виджета получаем адрес плеера
+function parseYandex(input) {
+  input = input.trim();
+  const src = input.match(/src=["']([^"']+)["']/i);
+  if (src && /music\.yandex\./.test(src[1])) return src[1].startsWith("//") ? "https:" + src[1] : src[1];
+  let m = input.match(/music\.yandex\.[a-z]+\/album\/(\d+)\/track\/(\d+)/i);
+  if (m) return `https://music.yandex.ru/iframe/#track/${m[2]}/${m[1]}`;
+  m = input.match(/music\.yandex\.[a-z]+\/track\/(\d+)/i);
+  if (m) return `https://music.yandex.ru/iframe/#track/${m[1]}`;
+  m = input.match(/music\.yandex\.[a-z]+\/iframe\/[^\s"']+/i);
+  if (m) return "https://" + m[0];
+  return null;
+}
+
+/* ================= модель квиза ================= */
+const ASK = { track: "Исполнитель — название", artist: "Исполнитель", title: "Название" };
+function answerOf(q) {
+  if (q.ask === "artist") return q.artist || "?";
+  if (q.ask === "title") return q.title || "?";
+  return [q.artist, q.title].filter(Boolean).join(" — ") || "?";
+}
+function optionsFor(quiz, q, n = 4) {
+  const right = answerOf(q);
+  const pool = [...new Set(quiz.questions.filter(x => x !== q).map(x => answerOf({ ...x, ask: q.ask })))]
+    .filter(a => a && a !== "?" && a.toLowerCase() !== right.toLowerCase());
+  const extra = (q.decoys || []).filter(Boolean);
+  const wrong = shuffle([...new Set([...extra, ...shuffle(pool)])]).slice(0, n - 1);
+  if (wrong.length < 1) return null; // не из чего делать варианты
+  return shuffle([right, ...wrong]);
+}
+
+function sampleQuiz() {
+  const t = (artist, title, ask = "track") => ({ id: uid(), source: "itunes", ref: "", country: "US", artist, title, cover: "", ask, start: 0 });
+  return {
+    id: uid(), title: "Хиты, которые знают все", fragment: 15, timer: 20, created: Date.now(),
+    questions: [
+      t("Queen", "Bohemian Rhapsody"),
+      t("ABBA", "Dancing Queen"),
+      t("Nirvana", "Smells Like Teen Spirit", "artist"),
+      t("Daft Punk", "Get Lucky"),
+      t("a-ha", "Take On Me", "title"),
+      t("Michael Jackson", "Billie Jean"),
+      t("The Beatles", "Here Comes the Sun"),
+      t("Eurythmics", "Sweet Dreams (Are Made of This)", "artist")
+    ]
+  };
+}
+
+/* ================= состояние и роутинг ================= */
+const state = { quizzes: [], view: "home", editId: null, game: null };
+state.quizzes = loadQuizzes() || [sampleQuiz()];
+saveQuizzes();
+const quizById = id => state.quizzes.find(q => q.id === id);
+
+const audio = new Audio();
+audio.preload = "auto";
+let stopT = null;
+function stopAudio() { audio.pause(); clearTimeout(stopT); document.body.classList.remove("playing"); }
+
+function go(view, opts = {}) {
+  stopAudio();
+  if (state.game) { clearInterval(state.game.tick); state.game.skeletonFor = null; }
+  document.onkeydown = null;
+  state.view = view;
+  Object.assign(state, opts);
+  render();
+  window.scrollTo(0, 0);
+}
+$("#goHome").onclick = () => go("home");
+function render() {
+  $("#topActions").innerHTML = "";
+  if (state.view === "home") renderHome();
+  else if (state.view === "edit") renderEditor();
+  else if (state.view === "setup") renderSetup();
+  else if (state.view === "play") renderPlay();
+  else if (state.view === "playlist") renderPlaylist();
+}
+
+/* ================= главная ================= */
+function renderHome() {
+  const app = $("#app");
+  app.innerHTML = `
+  <section class="hero">
+    <span class="label">Конструктор музыкальных квизов</span>
+    <h1>Угадай трек за&nbsp;15&nbsp;секунд</h1>
+    <p>Соберите квиз из треков Apple Music, Deezer, Яндекс Музыки, своих аудиофайлов или ссылок на открытые записи. Играйте одни на очки или устройте вечеринку с командами и ведущим.</p>
+    <div class="row">
+      <button class="btn gold" id="newQuiz">+ Новый квиз</button>
+      <button class="btn" id="fromPl">Квиз из плейлиста</button>
+      <label class="btn ghost" for="importFile">Открыть файл квиза</label>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+    </div>
+  </section>
+  <div class="row" style="justify-content:space-between;margin-bottom:14px"><h2>Мои квизы</h2><span class="muted">${state.quizzes.length}</span></div>
+  <div class="quizlist" id="list"></div>`;
+  const list = $("#list");
+  if (!state.quizzes.length) list.innerHTML = `<div class="empty">Квизов пока нет. Нажмите «Новый квиз», чтобы собрать первый.</div>`;
+  state.quizzes.forEach(qz => {
+    const covers = qz.questions.slice(0, 5).map(q => q.cover ? `<img src="${esc(q.cover)}" alt="">` : `<span></span>`).join("");
+    const el = document.createElement("article");
+    el.className = "card qcard";
+    el.innerHTML = `
+      <div class="covers">${covers || "<span></span>"}</div>
+      <div><h3>${esc(qz.title)}</h3><div class="muted" style="font-size:14px">${qz.questions.length} ${plural(qz.questions.length, "вопрос", "вопроса", "вопросов")} · фрагмент ${qz.fragment} с</div></div>
+      <div class="acts">
+        <button class="btn gold sm" data-a="play">Играть</button>
+        <button class="btn sm" data-a="edit">Редактировать</button>
+        <button class="btn sm ghost" data-a="dl">Скачать</button>
+        <button class="btn sm ghost" data-a="share">Поделиться</button>
+      </div>`;
+    el.querySelector('[data-a=dl]').onclick = () => downloadModal(qz);
+    el.querySelector('[data-a=play]').onclick = () => { if (!qz.questions.length) return toast("В квизе нет вопросов"); go("setup", { editId: qz.id }); };
+    el.querySelector('[data-a=edit]').onclick = () => go("edit", { editId: qz.id });
+    el.querySelector('[data-a=share]').onclick = () => shareModal(qz);
+    list.appendChild(el);
+  });
+  $("#newQuiz").onclick = () => {
+    const qz = { id: uid(), title: "Новый квиз", fragment: 15, timer: 20, created: Date.now(), questions: [] };
+    state.quizzes.unshift(qz); saveQuizzes(); go("edit", { editId: qz.id });
+  };
+  $("#fromPl").onclick = () => go("playlist", { plTarget: null });
+  $("#importFile").onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try { importQuiz(JSON.parse(await f.text())); } catch { toast("Это не файл квиза Мелодики"); }
+  };
+}
+function plural(n, a, b, c) { const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? b : c; }
+
+function importQuiz(data) {
+  if (!data || !Array.isArray(data.questions)) throw new Error("bad");
+  const qz = { ...data, id: uid(), questions: data.questions.filter(q => q.source !== "file").map(q => ({ ...q, id: uid() })) };
+  state.quizzes.unshift(qz); saveQuizzes(); go("home"); toast(`Квиз «${qz.title}» добавлен`);
+}
+
+/* ================= шаринг ================= */
+function encodeQuiz(qz) {
+  const slim = { title: qz.title, fragment: qz.fragment, timer: qz.timer,
+    questions: qz.questions.filter(q => q.source !== "file").map(({ id, ...q }) => q) };
+  const bytes = new TextEncoder().encode(JSON.stringify(slim));
+  let bin = ""; bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function decodeQuiz(s) {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  const bin = atob(s); const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+function shareModal(qz) {
+  const hasFiles = qz.questions.some(q => q.source === "file");
+  const link = location.href.split("#")[0] + "#quiz=" + encodeQuiz(qz);
+  openModal(`
+    <h2>Поделиться квизом</h2>
+    <p class="hint">Ссылка содержит весь квиз. Откройте её на другом устройстве — квиз появится в списке.</p>
+    <textarea id="shareLink" rows="3" readonly>${esc(link)}</textarea>
+    ${hasFiles ? `<div class="note">Вопросы со своими аудиофайлами не попадут в ссылку: файлы хранятся только в этом браузере.</div>` : ""}
+    ${location.protocol === "file:" ? `<div class="note">Сайт открыт как локальный файл. Чтобы ссылкой могли пользоваться другие, разместите сайт на хостинге — или отправьте JSON-файл.</div>` : ""}
+    <div class="row">
+      <button class="btn gold" id="copyLink">Скопировать ссылку</button>
+      <button class="btn" id="dlJson">Скачать JSON</button>
+      <button class="btn ghost" id="closeM">Закрыть</button>
+    </div>`);
+  $("#copyLink").onclick = async () => {
+    try { await navigator.clipboard.writeText(link); toast("Ссылка скопирована"); }
+    catch { const t = $("#shareLink"); t.select(); toast("Выделено — нажмите Ctrl+C"); }
+  };
+  $("#dlJson").onclick = () => {
+    const blob = new Blob([JSON.stringify(decodeQuiz(encodeQuiz(qz)), null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = (qz.title || "quiz").replace(/[^\p{L}\d]+/gu, "-") + ".json"; a.click();
+  };
+  $("#closeM").onclick = closeModal;
+}
+function openModal(html) { $("#modalBody").innerHTML = html; $("#modal").hidden = false; }
+function closeModal() { $("#modal").hidden = true; }
+$("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
+
+/* ================= редактор ================= */
+let editorTab = "itunes";
+function renderEditor() {
+  const qz = quizById(state.editId); if (!qz) return go("home");
+  $("#topActions").innerHTML = `<button class="btn sm" id="dlTop">Скачать</button><button class="btn gold sm" id="playTop">Играть</button>`;
+  $("#dlTop").onclick = () => downloadModal(qz);
+  $("#playTop").onclick = () => { if (!qz.questions.length) return toast("Добавьте хотя бы один трек"); go("setup", { editId: qz.id }); };
+  const app = $("#app");
+  app.innerHTML = `
+  <div class="stack">
+    <div class="field"><span class="label">Название квиза</span><input type="text" id="qTitle" value="${esc(qz.title)}"></div>
+    <div class="settings">
+      <label class="field"><span class="label">Длина фрагмента</span>
+        <select id="qFrag">${[5,10,15,20,30].map(v => `<option value="${v}" ${qz.fragment==v?"selected":""}>${v} секунд</option>`).join("")}</select></label>
+      <label class="field"><span class="label">Мат в песнях</span>
+        <select id="qClean">${Object.entries(CLEAN_LEVELS).map(([k, v]) => `<option value="${k}" ${(qz.clean || "off") === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
+      <label class="field"><span class="label">Время на ответ</span>
+        <select id="qTimer">${[10,15,20,30,45,60].map(v => `<option value="${v}" ${qz.timer==v?"selected":""}>${v} секунд</option>`).join("")}</select></label>
+    </div>
+
+    <section class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:12px"><h2>Добавить трек</h2></div>
+      <div class="tabs" role="tablist">
+        ${[["itunes","Apple / iTunes"],["deezer","Deezer"],["yandex","Яндекс Музыка"],["url","Ссылка на аудио"],["file","Свой файл"]]
+          .map(([k,l]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${editorTab===k}">${l}</button>`).join("")}
+        <button class="tab" id="plTab">Из плейлиста →</button>
+      </div>
+      <div id="addPane"></div>
+    </section>
+
+    <section class="stack">
+      <div class="row" style="justify-content:space-between"><h2>Вопросы</h2><div class="row"><span class="muted" id="qCount"></span><button class="btn sm" id="matCheck">Проверить на мат</button></div></div>
+      <div class="stack" id="qList" style="gap:8px"></div>
+    </section>
+
+    <div class="row" style="justify-content:space-between">
+      <button class="btn ghost sm" id="delQuiz" style="color:var(--bad)">Удалить квиз</button>
+      <button class="btn gold" id="playBottom">Играть</button>
+    </div>
+  </div>`;
+  $("#qTitle").oninput = e => { qz.title = e.target.value || "Без названия"; saveQuizzes(); };
+  $("#qFrag").onchange = e => { qz.fragment = +e.target.value; saveQuizzes(); };
+  $("#qTimer").onchange = e => { qz.timer = +e.target.value; saveQuizzes(); };
+  $("#qClean").onchange = e => {
+    qz.clean = e.target.value; saveQuizzes();
+    if (qz.clean !== "off" && qz.questions.length) runMatCheck(qz, true);
+  };
+  $("#matCheck").onclick = () => runMatCheck(qz, (qz.clean || "off") !== "off");
+  $("#plTab").onclick = () => go("playlist", { plTarget: qz.id });
+  app.querySelectorAll(".tab[data-tab]").forEach(b => b.onclick = () => { editorTab = b.dataset.tab; app.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-selected", x === b)); renderAddPane(qz); });
+  $("#playBottom").onclick = () => $("#playTop").click();
+  $("#delQuiz").onclick = () => {
+    openModal(`<h2>Удалить «${esc(qz.title)}»?</h2><p class="hint">Квиз и все его вопросы пропадут из этого браузера.</p>
+      <div class="row"><button class="btn" id="yesDel" style="background:var(--bad);border-color:var(--bad);color:#200">Удалить</button><button class="btn ghost" id="noDel">Отмена</button></div>`);
+    $("#noDel").onclick = closeModal;
+    $("#yesDel").onclick = () => { qz.questions.filter(q => q.source === "file").forEach(q => idb.del(q.ref).catch(() => {})); state.quizzes = state.quizzes.filter(x => x !== qz); saveQuizzes(); closeModal(); go("home"); };
+  };
+  renderAddPane(qz);
+  renderQList(qz);
+}
+
+async function addQuestion(qz, t) {
+  const level = qz.clean || "off";
+  if (level !== "off") {
+    toast("Проверяем песню на мат…");
+    const r = await checkTrack(t, level);
+    if (r.status === "explicit") { toast(`Не добавили «${t.title}»: ${r.reasons.join("; ")}`); return; }
+  }
+  qz.questions.push({ id: uid(), ask: "track", start: 0, ...t });
+  saveQuizzes(); renderQList(qz);
+  toast(`Добавлено: ${[t.artist, t.title].filter(Boolean).join(" — ")}`);
+}
+
+function trackRow(t, actionsHtml) {
+  return `<div class="track">${t.cover ? `<img src="${esc(t.cover)}" alt="" loading="lazy">` : `<span class="ph">♪</span>`}
+    <div class="meta"><b>${esc(t.title || "Без названия")}</b><span>${esc(t.artist || "—")}</span></div>
+    ${t.explicit ? `<span class="badge mat" title="Explicit: в каталоге отмечено, что есть ненормативная лексика">E</span>` : ""}<span class="badge ${t.source}">${t.source}</span>${actionsHtml}</div>`;
+}
+
+function renderAddPane(qz) {
+  const pane = $("#addPane");
+  if (editorTab === "itunes" || editorTab === "deezer") {
+    pane.innerHTML = `
+      <form class="row" id="sForm">
+        <input class="grow" type="text" id="sQ" placeholder="Исполнитель или название, например «Земфира Искала»" autocomplete="off">
+        ${editorTab === "itunes" ? `<select id="sCountry" style="width:auto">${["US","RU","FI","DE","GB","KZ","UA"].map(c => `<option ${c === (localStorageGet("melodika.country") || "US") ? "selected" : ""}>${c}</option>`).join("")}</select>` : ""}
+        <button class="btn gold">Найти</button>
+      </form>
+      <p class="hint" style="margin-top:8px">${editorTab === "itunes" ? "Каталог Apple: 30-секундные фрагменты. Страна влияет на набор треков." : "Каталог Deezer: 30-секундные фрагменты. В некоторых странах Deezer недоступен."}</p>
+      <div class="results" id="sRes"></div>`;
+    $("#sForm").onsubmit = async e => {
+      e.preventDefault();
+      const q = $("#sQ").value.trim(); if (!q) return;
+      const country = $("#sCountry")?.value || "US";
+      if ($("#sCountry")) localStorageSet("melodika.country", country);
+      const res = $("#sRes"); res.innerHTML = `<p class="hint">Ищем…</p>`;
+      try {
+        const items = await SOURCES[editorTab].search(q, country);
+        if (!items.length) { res.innerHTML = `<p class="hint">Ничего не нашлось. Попробуйте написать имя исполнителя иначе или выбрать другую страну.</p>`; return; }
+        res.innerHTML = "";
+        items.forEach(t => {
+          const div = document.createElement("div");
+          div.innerHTML = trackRow(t, `<button class="btn icon" title="Прослушать" data-p>▶</button><button class="btn gold sm" data-add>Добавить</button>`);
+          const row = div.firstElementChild;
+          row.querySelector("[data-p]").onclick = ev => previewToggle(t.preview, ev.currentTarget);
+          row.querySelector("[data-add]").onclick = () => { const { preview, ...rest } = t; addQuestion(qz, rest); };
+          res.appendChild(row);
+        });
+      } catch (err) { res.innerHTML = `<p class="hint" style="color:var(--bad)">${esc(err.message)}. Проверьте интернет или попробуйте другой источник.</p>`; }
+    };
+    $("#sQ").focus();
+  } else if (editorTab === "yandex") {
+    pane.innerHTML = `
+      <form class="stack" id="yForm">
+        <label class="field"><span class="label">Ссылка на трек или HTML-код виджета</span>
+          <input type="text" id="yLink" placeholder="https://music.yandex.ru/album/…/track/…" autocomplete="off"></label>
+        <div class="row">
+          <label class="field grow"><span class="label">Исполнитель</span><input type="text" id="yArtist"></label>
+          <label class="field grow"><span class="label">Название</span><input type="text" id="yTitle"></label>
+        </div>
+        <div class="row"><button class="btn gold">Добавить</button><button type="button" class="btn" id="yTest">Проверить плеер</button></div>
+        <div id="yPrev"></div>
+      </form>
+      <div class="note" style="margin-top:14px">У Яндекс Музыки нет открытого API, поэтому трек играет во встроенном плеере Яндекса: участникам нужно быть авторизованными в Яндексе, а полную версию слушают с подпиской Плюс. Во время игры плеер размыт, чтобы не подсказывать название. Если ссылка не сработала, возьмите код в Яндекс Музыке: «Поделиться» → «HTML-код» и вставьте его целиком.</div>`;
+    const src = () => parseYandex($("#yLink").value);
+    $("#yTest").onclick = () => {
+      const s = src(); if (!s) return toast("Не получилось распознать ссылку Яндекс Музыки");
+      $("#yPrev").innerHTML = `<div class="ymwrap"><iframe src="${esc(s)}" allow="autoplay; encrypted-media" title="Плеер Яндекс Музыки"></iframe></div>`;
+    };
+    $("#yForm").onsubmit = e => {
+      e.preventDefault();
+      const s = src(); if (!s) return toast("Не получилось распознать ссылку Яндекс Музыки");
+      const artist = $("#yArtist").value.trim(), title = $("#yTitle").value.trim();
+      if (!artist && !title) return toast("Укажите исполнителя или название — это правильный ответ");
+      addQuestion(qz, { source: "yandex", ref: s, artist, title, cover: "" });
+      e.target.reset(); $("#yPrev").innerHTML = "";
+    };
+  } else if (editorTab === "url") {
+    pane.innerHTML = `
+      <form class="stack" id="uForm">
+        <label class="field"><span class="label">Прямая ссылка на MP3 / OGG</span>
+          <input type="url" id="uLink" placeholder="https://archive.org/download/…/track.mp3" required></label>
+        <div class="row">
+          <label class="field grow"><span class="label">Исполнитель</span><input type="text" id="uArtist"></label>
+          <label class="field grow"><span class="label">Название</span><input type="text" id="uTitle"></label>
+        </div>
+        <div class="row"><button class="btn gold">Добавить</button><button type="button" class="btn" id="uTest">▶ Проверить</button></div>
+      </form>
+      <p class="hint" style="margin-top:10px">Подойдут открытые архивы: <a href="https://archive.org/details/audio" target="_blank" rel="noopener">Internet Archive</a>, <a href="https://freemusicarchive.org" target="_blank" rel="noopener">Free Music Archive</a>, <a href="https://ccmixter.org" target="_blank" rel="noopener">ccMixter</a>, <a href="https://commons.wikimedia.org/wiki/Category:Audio_files_of_music" target="_blank" rel="noopener">Wikimedia Commons</a>. Ссылка должна вести на сам файл, а не на страницу.</p>`;
+    $("#uTest").onclick = ev => { const v = $("#uLink").value.trim(); if (v) previewToggle(v, ev.currentTarget); };
+    $("#uForm").onsubmit = e => {
+      e.preventDefault();
+      const artist = $("#uArtist").value.trim(), title = $("#uTitle").value.trim();
+      if (!artist && !title) return toast("Укажите исполнителя или название — это правильный ответ");
+      addQuestion(qz, { source: "url", ref: $("#uLink").value.trim(), artist, title, cover: "" });
+      e.target.reset();
+    };
+  } else if (editorTab === "file") {
+    pane.innerHTML = `
+      <div class="stack">
+        <label class="btn" for="fIn" style="align-self:flex-start">Выбрать аудиофайлы</label>
+        <input type="file" id="fIn" accept="audio/*" multiple hidden>
+        <p class="hint">Файлы сохраняются только в этом браузере. Исполнитель и название берутся из имени файла вида «Исполнитель - Название.mp3», их можно поправить в списке ниже.</p>
+      </div>`;
+    $("#fIn").onchange = async e => {
+      for (const f of e.target.files) {
+        const key = "f_" + uid();
+        try { await idb.put(key, f); } catch { toast("Браузер не дал сохранить файл"); continue; }
+        const base = f.name.replace(/\.[^.]+$/, "");
+        const [a, ...rest] = base.split(/\s+[-–—]\s+/);
+        addQuestion(qz, { source: "file", ref: key, artist: rest.length ? a : "", title: rest.length ? rest.join(" - ") : base, cover: "" });
+      }
+      e.target.value = "";
+    };
+  }
+}
+function localStorageGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+function localStorageSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
+
+function renderQList(qz) {
+  const list = $("#qList"); if (!list) return;
+  $("#qCount").textContent = qz.questions.length ? `${qz.questions.length} ${plural(qz.questions.length, "трек", "трека", "треков")}` : "";
+  if (!qz.questions.length) { list.innerHTML = `<div class="empty">Найдите трек выше и нажмите «Добавить». Для вариантов ответа нужно хотя бы 4 трека.</div>`; return; }
+  list.innerHTML = "";
+  qz.questions.forEach((q, i) => {
+    const el = document.createElement("div");
+    el.className = "qrow" + (q.mat?.status === "explicit" ? " flagged" : "");
+    el.innerHTML = `
+      <span class="num">${String(i + 1).padStart(2, "0")}</span>
+      ${q.cover ? `<img src="${esc(q.cover)}" alt="">` : `<span class="ph">♪</span>`}
+      <div class="meta" style="min-width:0">
+        <div class="row" style="gap:6px;flex-wrap:nowrap"><b style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(q.title || "Без названия")}</b><span class="badge ${q.source}">${q.source}</span>${matBadge(q)}</div>
+        <div class="muted" style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(q.artist || "—")}</div>
+      </div>
+      <div class="ctl">
+        <select aria-label="Что угадывать" data-k="ask">${Object.entries(ASK).map(([k, v]) => `<option value="${k}" ${q.ask === k ? "selected" : ""}>Угадать: ${v.toLowerCase()}</option>`).join("")}</select>
+        ${q.source !== "yandex" ? `<label class="row" style="gap:6px;font-size:14px" title="С какой секунды начинать фрагмент">с&nbsp;<input type="number" min="0" max="600" step="1" value="${q.start || 0}" data-k="start" aria-label="Старт, секунды">&nbsp;с</label>
+        <button class="btn icon" title="Прослушать фрагмент" data-a="prev">▶</button>` : ""}
+        <button class="btn icon" title="Исправить ответ" data-a="edit">✎</button>
+        <button class="btn icon" title="Выше" data-a="up" ${i === 0 ? "disabled" : ""}>↑</button>
+        <button class="btn icon" title="Ниже" data-a="down" ${i === qz.questions.length - 1 ? "disabled" : ""}>↓</button>
+        <button class="btn icon" title="Удалить" data-a="del" style="color:var(--bad)">✕</button>
+      </div>`;
+    el.querySelector('[data-k=ask]').onchange = e => { q.ask = e.target.value; saveQuizzes(); };
+    const st = el.querySelector('[data-k=start]'); if (st) st.onchange = e => { q.start = Math.max(0, +e.target.value || 0); saveQuizzes(); };
+    const pv = el.querySelector('[data-a=prev]');
+    if (pv) pv.onclick = async ev => {
+      const btn = ev.currentTarget;
+      if (btn.textContent === "■") return previewToggle(null, btn);
+      try { const src = await SOURCES[q.source].resolve(q); previewToggle(src, btn, q.start || 0, qz.fragment); }
+      catch (err) { toast(err.message); }
+    };
+    el.querySelector('[data-a=edit]').onclick = () => editAnswerModal(qz, q);
+    el.querySelector('[data-a=up]').onclick = () => { qz.questions.splice(i - 1, 0, qz.questions.splice(i, 1)[0]); saveQuizzes(); renderQList(qz); };
+    el.querySelector('[data-a=down]').onclick = () => { qz.questions.splice(i + 1, 0, qz.questions.splice(i, 1)[0]); saveQuizzes(); renderQList(qz); };
+    el.querySelector('[data-a=del]').onclick = () => { if (q.source === "file") idb.del(q.ref).catch(() => {}); qz.questions.splice(i, 1); saveQuizzes(); renderQList(qz); };
+    list.appendChild(el);
+  });
+}
+
+function matBadge(q) {
+  if (!q.mat) return "";
+  if (q.mat.status === "explicit") return `<span class="badge mat" title="${esc(q.mat.reasons.join("; "))}">мат</span>`;
+  if (q.mat.status === "clean") return `<span class="badge clean" title="Текст проверен, мата нет">чисто</span>`;
+  return `<span class="badge unk" title="Текст песни не найден — проверить не удалось">?</span>`;
+}
+
+// проверяет все песни квиза; autoRemove — сразу убрать песни с матом и сообщить, какие удалены
+async function runMatCheck(qz, autoRemove) {
+  const level = (qz.clean && qz.clean !== "off") ? qz.clean : "mat";
+  const items = qz.questions.slice();
+  openModal(`<h2>Проверяем песни на мат</h2>
+    <div class="timer"><i id="mcBar" style="transform:scaleX(0)"></i></div>
+    <p class="hint" id="mcStatus">Ищем тексты песен…</p>`);
+  let done = 0;
+  await pool(items, 4, async q => {
+    await checkTrack(q, level);
+    done++;
+    $("#mcBar") && ($("#mcBar").style.transform = `scaleX(${done / items.length})`);
+    $("#mcStatus") && ($("#mcStatus").textContent = `Проверено ${done} из ${items.length}`);
+  });
+  const bad = items.filter(q => q.mat?.status === "explicit");
+  const unk = items.filter(q => q.mat?.status === "unknown");
+  const unkHtml = unk.length ? `<details class="note"><summary style="cursor:pointer">Не удалось проверить: ${unk.length}</summary><div class="stack" style="gap:4px;margin-top:8px;font-size:14px">${unk.map(q => matLine(q)).join("")}</div>
+      <p class="hint" style="margin-top:8px">Текстов этих песен нет в открытой базе. Послушайте их сами или удалите вручную.</p></details>` : "";
+  if (autoRemove && bad.length) {
+    bad.forEach(q => { if (q.source === "file") idb.del(q.ref).catch(() => {}); });
+    qz.questions = qz.questions.filter(q => !bad.includes(q));
+  }
+  saveQuizzes(); renderQList(qz);
+  const list = `<div class="stack" style="gap:6px;font-size:14px;max-height:280px;overflow:auto">${bad.map(q => matLine(q)).join("")}</div>`;
+  if (!bad.length) {
+    openModal(`<h2>Мата не нашли</h2><p class="hint">Проверено песен: ${items.length}. Чистых: ${items.length - unk.length}.</p>${unkHtml}
+      <div class="row"><button class="btn gold" id="mcOk">Хорошо</button></div>`);
+  } else if (autoRemove) {
+    openModal(`<h2>Удалили ${bad.length} ${plural(bad.length, "песню", "песни", "песен")} с матом</h2>
+      <p class="hint">В квизе включён режим «${CLEAN_LEVELS[level]}», поэтому эти песни убраны:</p>${list}${unkHtml}
+      <div class="row"><button class="btn gold" id="mcOk">Понятно</button></div>`);
+  } else {
+    openModal(`<h2>Нашли мат в ${bad.length} ${plural(bad.length, "песне", "песнях", "песнях")}</h2>${list}${unkHtml}
+      <div class="row"><button class="btn" id="mcDel" style="background:var(--bad);border-color:var(--bad);color:#200">Удалить эти песни</button><button class="btn ghost" id="mcOk">Оставить и пометить</button></div>`);
+    $("#mcDel").onclick = () => {
+      bad.forEach(q => { if (q.source === "file") idb.del(q.ref).catch(() => {}); });
+      qz.questions = qz.questions.filter(q => !bad.includes(q));
+      saveQuizzes(); renderQList(qz); closeModal(); toast(`Удалено песен: ${bad.length}`);
+    };
+  }
+  $("#mcOk").onclick = closeModal;
+}
+
+function editAnswerModal(qz, q) {
+  openModal(`
+    <h2>Правильный ответ</h2>
+    <form class="stack" id="eaForm">
+      <label class="field"><span class="label">Исполнитель</span><input type="text" id="eaA" value="${esc(q.artist)}"></label>
+      <label class="field"><span class="label">Название</span><input type="text" id="eaT" value="${esc(q.title)}"></label>
+      <label class="field"><span class="label">Свои неверные варианты (через точку с запятой)</span>
+        <input type="text" id="eaD" value="${esc((q.decoys || []).join("; "))}" placeholder="Необязательно: иначе варианты берутся из других вопросов"></label>
+      <div class="row"><button class="btn gold">Сохранить</button><button type="button" class="btn ghost" id="eaC">Отмена</button></div>
+    </form>`);
+  $("#eaC").onclick = closeModal;
+  $("#eaForm").onsubmit = e => {
+    e.preventDefault();
+    q.artist = $("#eaA").value.trim(); q.title = $("#eaT").value.trim();
+    q.decoys = $("#eaD").value.split(";").map(s => s.trim()).filter(Boolean);
+    saveQuizzes(); closeModal(); renderQList(qz);
+  };
+}
+
+let previewBtn = null;
+function previewToggle(src, btn, start = 0, len = 0) {
+  if (previewBtn) previewBtn.textContent = "▶";
+  if (!src || previewBtn === btn && !audio.paused) { stopAudio(); previewBtn = null; return; }
+  playFragment(src, start, len || 30).then(() => { previewBtn = btn; btn.textContent = "■"; })
+    .catch(err => toast(err.message));
+  audio.onpause = () => { if (previewBtn) previewBtn.textContent = "▶"; previewBtn = null; document.body.classList.remove("playing"); };
+}
+
+function playFragment(src, start, len) {
+  stopAudio();
+  return new Promise((resolve, reject) => {
+    audio.src = src;
+    const onMeta = () => {
+      audio.removeEventListener("loadedmetadata", onMeta);
+      const dur = isFinite(audio.duration) ? audio.duration : 0;
+      audio.currentTime = dur && start >= dur - 1 ? 0 : start;
+      audio.play().then(() => {
+        document.body.classList.add("playing");
+        stopT = setTimeout(stopAudio, len * 1000);
+        resolve();
+      }).catch(() => reject(new Error("Браузер не дал включить звук. Нажмите ещё раз.")));
+    };
+    audio.addEventListener("loadedmetadata", onMeta);
+    audio.onerror = () => reject(new Error("Не удалось загрузить аудио. Ссылка недоступна или формат не поддерживается."));
+    audio.load();
+  });
+}
+
+/* ================= настройка игры ================= */
+function renderSetup() {
+  const qz = quizById(state.editId); if (!qz) return go("home");
+  const prev = state.lastSetup || { mode: "solo", teams: ["Красные", "Синие"], shuffle: true };
+  const app = $("#app");
+  app.innerHTML = `
+  <div class="stack">
+    <span class="label">${qz.questions.length} ${plural(qz.questions.length, "вопрос", "вопроса", "вопросов")} · фрагмент ${qz.fragment} с · ответ ${qz.timer} с</span>
+    <h1>${esc(qz.title)}</h1>
+    <div class="settings">
+      <button class="card stack" data-mode="solo" style="text-align:left;cursor:pointer">
+        <h3>Сам за себя</h3><p class="hint">Варианты ответа, очки за скорость. Подходит, чтобы проверить себя.</p></button>
+      <button class="card stack" data-mode="host" style="text-align:left;cursor:pointer">
+        <h3>С ведущим и командами</h3><p class="hint">Ведущий включает трек на большом экране, команды отвечают вслух, ведущий начисляет баллы.</p></button>
+    </div>
+    <div id="teamBox" class="card stack" hidden>
+      <span class="label">Команды</span>
+      <div class="stack" id="teamList" style="gap:8px"></div>
+      <button class="btn sm" id="addTeam" style="align-self:flex-start">+ Команда</button>
+    </div>
+    <label class="row" style="gap:8px"><input type="checkbox" id="shuf" ${prev.shuffle ? "checked" : ""}> Перемешать вопросы</label>
+    <div class="row"><button class="btn gold" id="start">Начать игру</button><button class="btn ghost" id="back">К редактору</button></div>
+  </div>`;
+  let mode = prev.mode, teams = prev.teams.slice();
+  const paint = () => {
+    app.querySelectorAll("[data-mode]").forEach(b => b.style.borderColor = b.dataset.mode === mode ? "var(--gold)" : "var(--line)");
+    $("#teamBox").hidden = mode !== "host";
+    $("#teamList").innerHTML = teams.map((t, i) => `<div class="row"><input class="grow" type="text" value="${esc(t)}" data-i="${i}" aria-label="Команда ${i + 1}">${teams.length > 1 ? `<button class="btn icon" data-rm="${i}" title="Убрать">✕</button>` : ""}</div>`).join("");
+    $("#teamList").querySelectorAll("input").forEach(inp => inp.oninput = () => teams[+inp.dataset.i] = inp.value);
+    $("#teamList").querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { teams.splice(+b.dataset.rm, 1); paint(); });
+  };
+  app.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { mode = b.dataset.mode; paint(); });
+  $("#addTeam").onclick = () => { teams.push("Команда " + (teams.length + 1)); paint(); };
+  $("#back").onclick = () => go("edit", { editId: qz.id });
+  $("#start").onclick = () => {
+    const sh = $("#shuf").checked;
+    teams = teams.map((t, i) => t.trim() || "Команда " + (i + 1));
+    state.lastSetup = { mode, teams, shuffle: sh };
+    const order = sh ? shuffle(qz.questions) : qz.questions.slice();
+    state.game = { quiz: qz, mode, order, i: 0, score: 0, correct: 0, teams: teams.map(n => ({ name: n, pts: 0 })), phase: "ready" };
+    go("play");
+  };
+  paint();
+}
+
+/* ================= игра ================= */
+function renderPlay() {
+  const g = state.game; if (!g) return go("home");
+  const qz = g.quiz;
+  $("#topActions").innerHTML = `<button class="btn sm ghost" id="quit">Выйти</button>`;
+  $("#quit").onclick = () => go("home");
+  if (g.i >= g.order.length) return renderFinal();
+  const q = g.order[g.i];
+  const opts = g.opts && g.optsFor === q.id ? g.opts : (g.opts = optionsFor(qz, q), g.optsFor = q.id, g.opts);
+  const lamps = g.order.map((_, k) => `<i class="${k < g.i ? "done" : k === g.i ? "cur" : ""}"></i>`).join("");
+  const app = $("#app");
+  // каркас строим один раз на вопрос, чтобы не перезагружать плеер Яндекса
+  if (g.skeletonFor !== q.id || !$("#stage")) {
+    g.skeletonFor = q.id;
+    app.innerHTML = `
+    <div class="board" id="boardBox"></div>
+    <section class="stage" id="stage">
+      <span class="label">Угадайте: ${ASK[q.ask].toLowerCase()}</span>
+      <div class="disc" id="disc"></div>
+      ${q.source === "yandex" ? `<div class="ymwrap masked" id="ym" hidden>
+          <iframe src="${esc(q.ref)}" allow="autoplay; encrypted-media" title="Плеер Яндекс Музыки"></iframe></div>` : ""}
+      <div class="row" style="justify-content:center" id="controls"></div>
+      <div class="timer" id="timer"><i id="bar"></i></div>
+      <div class="tnum" id="tnum"></div>
+      <div id="ansBox"></div>
+      <div class="opts" id="opts"></div>
+      <div id="teamsBox" style="width:100%"></div>
+    </section>`;
+  }
+  $("#boardBox").innerHTML = `
+    <div class="stack" style="gap:8px"><span class="label">Вопрос ${g.i + 1} из ${g.order.length}</span><div class="lamps">${lamps}</div></div>
+    ${g.mode === "solo" ? `<div style="text-align:right"><span class="label">Очки</span><div class="score">${g.score}</div></div>` : ""}`;
+  $("#disc").innerHTML = g.phase === "reveal" && q.cover ? `<img src="${esc(q.cover)}" alt="">` : "";
+  $("#disc").classList.toggle("revealed", g.phase === "reveal" && !!q.cover);
+  if ($("#ym")) { $("#ym").hidden = g.phase === "ready"; $("#ym").classList.toggle("masked", g.phase !== "reveal"); }
+  $("#timer").hidden = g.phase === "ready";
+  ["#ansBox", "#opts", "#teamsBox", "#tnum"].forEach(s => $(s).innerHTML = "");
+  const controls = $("#controls");
+
+  if (g.phase === "ready") {
+    controls.innerHTML = `<button class="btn gold playbtn" id="go" aria-label="Слушать">▶</button>`;
+    $("#tnum").textContent = q.source === "yandex" ? "Нажмите, затем запустите трек в плеере Яндекса" : `Звучит ${qz.fragment} секунд`;
+    $("#go").onclick = startRound;
+  } else if (g.phase === "listen") {
+    controls.innerHTML = q.source !== "yandex" ? `<button class="btn" id="again">↻ Ещё раз</button>` : "";
+    if (g.mode === "host") controls.innerHTML += `<button class="btn gold" id="reveal">Показать ответ</button>`;
+    $("#again") && ($("#again").onclick = () => replay(q));
+    $("#reveal") && ($("#reveal").onclick = () => reveal(null));
+    $("#disc").classList.toggle("spin", !audio.paused || q.source === "yandex");
+  } else if (g.phase === "reveal") {
+    controls.innerHTML = q.source !== "yandex" ? `<button class="btn" id="full">▶ Дослушать</button>` : "";
+    controls.innerHTML += `<button class="btn gold" id="next">${g.i + 1 < g.order.length ? "Следующий трек →" : "Итоги"}</button>`;
+    $("#full") && ($("#full").onclick = () => replay(q, 30));
+    $("#next").onclick = () => { stopAudio(); g.i++; g.phase = "ready"; g.picked = null; g.opts = null; render(); };
+    $("#ansBox").innerHTML = `<div class="answer">
+      ${g.mode === "solo" ? `<div class="verdict ${g.picked === answerOf(q) ? "ok" : "no"}">${g.picked === answerOf(q) ? `ВЕРНО! +${g.lastPts}` : g.picked == null ? "ВРЕМЯ ВЫШЛО" : "МИМО"}</div>` : ""}
+      <div class="big">${esc(q.title || "")}</div><div class="muted">${esc(q.artist || "")}</div></div>`;
+  }
+
+  // варианты
+  const optBox = $("#opts");
+  if (opts && g.phase !== "ready") {
+    optBox.innerHTML = opts.map((o, k) => `<button class="opt" data-o="${esc(o)}"><kbd>${k + 1}</kbd><span>${esc(o)}</span></button>`).join("");
+    optBox.querySelectorAll(".opt").forEach(b => {
+      if (g.phase === "reveal") {
+        b.disabled = true;
+        if (b.dataset.o === answerOf(q)) b.classList.add("right");
+        else if (b.dataset.o === g.picked) b.classList.add("wrong");
+      } else if (g.mode === "solo") b.onclick = () => reveal(b.dataset.o);
+      else b.disabled = true;
+    });
+  } else if (!opts && g.mode === "solo" && g.phase === "listen") {
+    controls.innerHTML += `<button class="btn gold" id="reveal">Показать ответ</button>`;
+    $("#reveal").onclick = () => reveal(null);
+    $("#ansBox").innerHTML = `<p class="hint">Для вариантов ответа в квизе мало треков — отвечайте вслух.</p>`;
+  }
+  if (!opts && g.mode === "solo" && g.phase === "reveal") {
+    $("#ansBox").querySelector(".verdict").outerHTML = `<div class="row" style="justify-content:center"><button class="btn" id="selfOk" style="border-color:var(--ok)">Я угадал</button><button class="btn" id="selfNo">Не угадал</button></div>`;
+    $("#selfOk").onclick = () => { g.score += 100; g.correct++; g.selfMarked = true; $("#selfOk").parentElement.remove(); render(); };
+    $("#selfNo").onclick = () => { $("#selfNo").parentElement.remove(); };
+    if (g.selfMarked) { $("#ansBox .row")?.remove(); }
+  }
+
+  // команды
+  if (g.mode === "host" && g.phase !== "ready") {
+    $("#teamsBox").innerHTML = `<div class="teams">${g.teams.map((t, k) => `
+      <div class="team"><b>${esc(t.name)}</b><div class="pts">${t.pts}</div>
+      <div class="row"><button class="btn icon" data-t="${k}" data-d="-1" aria-label="Минус балл">−</button><button class="btn icon gold" data-t="${k}" data-d="1" aria-label="Плюс балл">+</button></div></div>`).join("")}</div>`;
+    $("#teamsBox").querySelectorAll("[data-t]").forEach(b => b.onclick = () => {
+      const t = g.teams[+b.dataset.t]; t.pts += +b.dataset.d;
+      b.closest(".team").querySelector(".pts").textContent = t.pts;
+    });
+  }
+
+  // таймер
+  if (g.phase === "listen") {
+    const update = () => {
+      const left = Math.max(0, g.deadline - Date.now());
+      const bar = $("#bar"); if (!bar) return;
+      bar.style.transform = `scaleX(${left / (qz.timer * 1000)})`;
+      $("#tnum").textContent = Math.ceil(left / 1000) + " с";
+      if (left <= 0) { clearInterval(g.tick); if (g.mode === "solo") reveal(null); else $("#tnum").textContent = "Время вышло"; }
+    };
+    clearInterval(g.tick); g.tick = setInterval(update, 100); update();
+  }
+  if (g.mode === "solo" && g.phase === "listen") {
+    document.onkeydown = e => { const n = +e.key; if (n >= 1 && n <= (opts?.length || 0)) reveal(opts[n - 1]); };
+  } else document.onkeydown = null;
+}
+
+async function startRound() {
+  const g = state.game, q = g.order[g.i];
+  $("#go").disabled = true;
+  if (q.source === "yandex") { g.phase = "listen"; g.deadline = Date.now() + g.quiz.timer * 1000; render(); return; }
+  $("#tnum").textContent = "Загружаем трек…";
+  try {
+    g.src = await SOURCES[q.source].resolve(q);
+    await playFragment(g.src, q.start || 0, g.quiz.fragment);
+    g.phase = "listen"; g.deadline = Date.now() + g.quiz.timer * 1000;
+    audio.onpause = () => $("#disc")?.classList.remove("spin");
+    render();
+  } catch (err) {
+    $("#tnum").textContent = err.message;
+    $("#controls").innerHTML = `<button class="btn gold" id="go">Попробовать снова</button><button class="btn ghost" id="skip">Пропустить вопрос</button>`;
+    $("#go").onclick = startRound;
+    $("#skip").onclick = () => { g.order.splice(g.i, 1); g.phase = "ready"; g.opts = null; render(); };
+  }
+}
+function replay(q, len) {
+  const g = state.game;
+  if (!g.src) return;
+  playFragment(g.src, q.start || 0, len || g.quiz.fragment).then(() => $("#disc")?.classList.add("spin")).catch(e => toast(e.message));
+}
+function reveal(picked) {
+  const g = state.game, q = g.order[g.i];
+  if (g.phase !== "listen") return;
+  clearInterval(g.tick);
+  g.picked = picked; g.lastPts = 0; g.selfMarked = false;
+  if (g.mode === "solo" && picked != null && picked === answerOf(q)) {
+    const left = Math.max(0, g.deadline - Date.now()) / (g.quiz.timer * 1000);
+    g.lastPts = 100 + Math.round(100 * left);
+    g.score += g.lastPts; g.correct++;
+  }
+  g.phase = "reveal";
+  if (q.cover) { /* обложку показываем только после ответа */ }
+  render();
+}
+
+function renderFinal() {
+  const g = state.game;
+  stopAudio(); document.onkeydown = null;
+  const app = $("#app");
+  if (g.mode === "solo") {
+    const total = g.order.length;
+    const pct = total ? g.correct / total : 0;
+    const title = pct === 1 ? "Абсолютный слух!" : pct >= .7 ? "Отличный результат" : pct >= .4 ? "Неплохо!" : "Есть куда расти";
+    app.innerHTML = `<section class="stage">
+      <span class="label">Итоги</span><h1>${title}</h1>
+      <div class="score" style="font-size:56px">${g.score}</div>
+      <p class="muted" style="margin:0">Угадано ${g.correct} из ${total}</p>
+      <div class="row" style="justify-content:center"><button class="btn gold" id="again">Сыграть ещё</button><button class="btn" id="home">К квизам</button></div></section>`;
+  } else {
+    const sorted = g.teams.slice().sort((a, b) => b.pts - a.pts);
+    app.innerHTML = `<section class="stage">
+      <span class="label">Итоги</span><h1>${sorted.length > 1 && sorted[0].pts === sorted[1].pts ? "Ничья!" : "Побеждает " + esc(sorted[0].name)}</h1>
+      <div class="final">${sorted.map(t => `<div class="line"><span>${esc(t.name)}</span><span style="font-family:var(--mono)">${t.pts}</span></div>`).join("")}</div>
+      <div class="row" style="justify-content:center"><button class="btn gold" id="again">Сыграть ещё</button><button class="btn" id="home">К квизам</button></div></section>`;
+  }
+  $("#again").onclick = () => go("setup", { editId: g.quiz.id });
+  $("#home").onclick = () => go("home");
+}
+
+/* ================= скачивание ================= */
+function saveBlob(blob, name) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+const fileSafe = s => (s || "quiz").replace(/[^\p{L}\d]+/gu, "-").replace(/^-|-$/g, "") || "quiz";
+const blobToDataURL = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
+
+async function buildGameHtml(qz) {
+  const copy = JSON.parse(JSON.stringify(qz));
+  let embedded = 0, lost = 0;
+  const qs = [];
+  for (const q of copy.questions) {
+    if (q.source === "file") {
+      const blob = await idb.get(q.ref).catch(() => null);
+      if (!blob) { lost++; continue; }
+      q.source = "url"; q.embedded = true; q.ref = await blobToDataURL(blob); embedded++;
+    }
+    qs.push(q);
+  }
+  copy.questions = qs;
+  const preset = { presetId: uid() + Date.now().toString(36), quiz: copy };
+  const json = JSON.stringify(preset).replace(/</g, "\\u003c");
+  const html = PAGE_SRC.replace(/<script>(\s*"use strict")/, `<script id="melodika-preset">window.MELODIKA_PRESET=${json};<\/script>\n<script>$1`);
+  return { html, embedded, lost };
+}
+
+function downloadModal(qz) {
+  const files = qz.questions.filter(q => q.source === "file").length;
+  const online = qz.questions.length - files;
+  openModal(`
+    <h2>Скачать «${esc(qz.title)}»</h2>
+    <button class="card stack" id="dlHtml" style="text-align:left;cursor:pointer;background:var(--bg2)">
+      <h3>Файл-игра (.html)</h3>
+      <p class="hint">Готовый квиз одним файлом: откройте в любом браузере, и сразу можно играть. Подходит, чтобы отправить другу или взять на вечеринку.${files ? ` Ваши аудиофайлы (${files}) будут вшиты в файл и сыграют без интернета.` : ""}${online ? ` Треки из каталогов и Яндекса подгружаются из интернета.` : ""}</p>
+    </button>
+    <button class="card stack" id="dlJsonB" style="text-align:left;cursor:pointer;background:var(--bg2)">
+      <h3>Данные квиза (.json)</h3>
+      <p class="hint">Лёгкий файл для резервной копии или переноса. Открывается кнопкой «Открыть файл квиза» на главной.${files ? " Свои аудиофайлы в него не попадают." : ""}</p>
+    </button>
+    <button class="btn ghost" id="closeM" style="align-self:flex-start">Отмена</button>`);
+  $("#closeM").onclick = closeModal;
+  $("#dlJsonB").onclick = () => {
+    const slim = decodeQuiz(encodeQuiz(qz));
+    saveBlob(new Blob([JSON.stringify(slim, null, 2)], { type: "application/json" }), fileSafe(qz.title) + ".json");
+    closeModal(); toast("Файл квиза скачан");
+  };
+  $("#dlHtml").onclick = async () => {
+    $("#dlHtml").disabled = true; $("#dlHtml h3").textContent = "Собираем файл…";
+    try {
+      const { html, lost } = await buildGameHtml(qz);
+      saveBlob(new Blob([html], { type: "text/html" }), fileSafe(qz.title) + ".html");
+      closeModal();
+      toast(lost ? `Скачано. ${lost} файл(ов) не нашлось в браузере — они пропущены` : "Файл-игра скачан");
+    } catch (err) { toast("Не удалось собрать файл: " + err.message); $("#dlHtml").disabled = false; }
+  };
+}
+
+// квиз, вшитый в скачанный файл
+async function loadPreset() {
+  const p = window.MELODIKA_PRESET;
+  if (!p || !p.quiz) return false;
+  let qz = state.quizzes.find(x => x.presetId === p.presetId);
+  if (!qz) {
+    qz = { ...p.quiz, id: uid(), presetId: p.presetId };
+    for (const q of qz.questions) {
+      q.id = uid();
+      if (q.embedded) {
+        try {
+          const blob = await (await fetch(q.ref)).blob();
+          const key = "f_" + uid(); await idb.put(key, blob);
+          q.source = "file"; q.ref = key; delete q.embedded;
+        } catch { /* останется data:-ссылкой — сыграет, но не сохранится */ }
+      }
+    }
+    state.quizzes.unshift(qz); saveQuizzes();
+  }
+  go("setup", { editId: qz.id });
+  return true;
+}
+
+/* ================= квиз из плейлиста ================= */
+const norm = s => String(s || "").toLowerCase().replace(/ё/g, "е")
+  .replace(/\(.*?\)|\[.*?\]/g, " ").replace(/\b(feat|ft)\.?\s.*$/i, " ")
+  .replace(/[^\p{L}\d]+/gu, " ").trim();
+
+function parseCSV(text) {
+  const first = text.split(/\r?\n/)[0];
+  const delim = [",", ";", "\t"].sort((a, b) => first.split(b).length - first.split(a).length)[0];
+  const rows = []; let row = [], cell = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; }
+    else if (c === '"') q = true;
+    else if (c === delim) { row.push(cell); cell = ""; }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(cell); rows.push(row); row = []; cell = ""; }
+    else cell += c;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter(r => r.some(c => c.trim()));
+}
+
+// разбирает текст списка: CSV из сервисов переноса, «Исполнитель — Название» построчно
+// или текст, скопированный со страницы плейлиста (блоки, разделённые длительностью 3:45)
+function parseTrackList(text) {
+  text = text.replace(/ /g, " ").trim();
+  if (!text) return [];
+  const firstLine = text.split(/\r?\n/)[0].toLowerCase();
+  if (/(track|title|song|назван|трек)/.test(firstLine) && /(artist|исполн|артист)/.test(firstLine) && /[,;\t]/.test(firstLine)) {
+    const rows = parseCSV(text), head = rows.shift().map(h => h.toLowerCase());
+    const ti = head.findIndex(h => /track ?name|^title|song|назван|^трек/.test(h));
+    const ai = head.findIndex(h => /artist|исполн|артист/.test(h));
+    if (ti >= 0 && ai >= 0) return rows.map(r => ({ artist: (r[ai] || "").trim(), title: (r[ti] || "").trim() })).filter(t => t.title);
+  }
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+    .map(l => l.replace(/^\d{1,4}[.)]\s+/, ""));
+  const SEP = /\s+[—–-]\s+/;
+  const withSep = lines.filter(l => SEP.test(l)).length;
+  const DUR = /^\d{1,2}:\d{2}(:\d{2})?$/;
+  const durs = lines.filter(l => DUR.test(l)).length;
+  if (withSep >= lines.length * 0.5) {
+    return lines.filter(l => SEP.test(l)).map(l => { const [a, ...t] = l.split(SEP); return { artist: a.trim(), title: t.join(" - ").trim() }; });
+  }
+  if (durs >= 2) {
+    const out = []; let chunk = [];
+    const junk = /^(\d+|e|explicit|18\+|plus|hq|lossless|•|·)$/i;
+    for (const l of lines) {
+      if (DUR.test(l)) {
+        const c = chunk.filter(x => !junk.test(x));
+        if (c.length) out.push({ title: c[0], artist: (c[1] || "").replace(/\s*,\s*/g, ", ") });
+        chunk = [];
+      } else chunk.push(l);
+    }
+    return out;
+  }
+  return lines.map(l => ({ artist: "", title: l }));
+}
+
+// ссылки, которые можно загрузить напрямую
+async function loadPlaylistUrl(url) {
+  let m = url.match(/deezer\.com\/(?:[a-z]{2}\/)?(playlist|album)\/(\d+)/i);
+  if (m) {
+    const d = await jsonp(`https://api.deezer.com/${m[1]}/${m[2]}?output=jsonp`);
+    if (d.error) throw new Error("Deezer: " + (d.error.message || "плейлист недоступен") + ". Плейлист должен быть публичным.");
+    let tracks = (d.tracks?.data || []);
+    let next = d.tracks?.next;
+    while (next && tracks.length < 1000) {
+      const n = await jsonp(next.replace(/output=\w+&?/, "") + (next.includes("?") ? "&" : "?") + "output=jsonp");
+      tracks = tracks.concat(n.data || []); next = n.next;
+    }
+    return { name: d.title, tracks: tracks.filter(t => t.readable !== false).map(t => ({
+      source: "deezer", ref: String(t.id), artist: t.artist?.name, title: t.title, cover: t.album?.cover_medium || d.cover_medium || "", explicit: !!t.explicit_lyrics })) };
+  }
+  m = url.match(/music\.apple\.com\/([a-z]{2})\/album\/[^/]*\/?(\d+)/i) || url.match(/music\.apple\.com\/([a-z]{2})\/album\/(\d+)/i);
+  if (m) {
+    const d = await jsonp(`https://itunes.apple.com/lookup?id=${m[2]}&entity=song&country=${m[1].toUpperCase()}`);
+    const songs = (d.results || []).filter(r => r.wrapperType === "track" && r.previewUrl);
+    if (!songs.length) throw new Error("Apple не отдал треки этого альбома");
+    return { name: d.results[0]?.collectionName, tracks: songs.map(r => ({
+      source: "itunes", ref: String(r.trackId), country: m[1].toUpperCase(), artist: r.artistName, title: r.trackName,
+      cover: (r.artworkUrl100 || "").replace("100x100", "300x300"), explicit: r.trackExplicitness === "explicit" })) };
+  }
+  return null;
+}
+function playlistHint(url) {
+  if (/music\.yandex\./i.test(url)) return "У Яндекс Музыки нет открытого API, поэтому плейлист по ссылке не загрузить.";
+  if (/spotify\.com/i.test(url)) return "Spotify не даёт читать плейлисты без входа в аккаунт.";
+  if (/vk\.(com|ru)|boom\.ru/i.test(url)) return "VK Музыка закрыта для сторонних сайтов.";
+  if (/zvuk\.com|sber-zvuk/i.test(url)) return "Звук закрыт для сторонних сайтов.";
+  if (/music\.apple\.com.*\/playlist\//i.test(url)) return "Apple открывает по ссылке только альбомы, плейлисты — нет.";
+  if (/music\.youtube|youtube\.com/i.test(url)) return "YouTube Музыка закрыта для сторонних сайтов.";
+  return "Эту ссылку не получается загрузить.";
+}
+
+function pickBest(want, found) {
+  const wt = norm(want.title), wa = norm(want.artist);
+  let best = null, bs = 0;
+  for (const f of found) {
+    const ft = norm(f.title), fa = norm(f.artist);
+    let s = 0;
+    if (ft === wt) s += 3; else if (ft && wt && (ft.includes(wt) || wt.includes(ft))) s += 2;
+    if (wa) { const a1 = wa.split(" ")[0]; if (fa === wa) s += 3; else if (fa.includes(a1) || wa.includes(fa)) s += 2; }
+    else s += 1;
+    if (s > bs) { bs = s; best = f; }
+  }
+  return bs >= 3 ? best : null;
+}
+
+/* ================= проверка на мат ================= */
+// уровни: off — не проверять, mat — только мат, rude — мат и грубая брань
+const CLEAN_LEVELS = { off: "Не проверять", mat: "Без мата", rude: "Без мата и грубой брани" };
+const W = "(?:^|[^а-яёa-z])"; // начало слова
+const MAT_RX = [
+  new RegExp(W + "(?:на|по|ни|о|об|от|за|до|под|рас|раз|вы)?ху[йеёияю]", "giu"),
+  /пизд[а-яё]*/giu,
+  new RegExp(W + "(?:вы|за|на|по|у|от|раз|рас|до|при|про|недо|съ|въ|взъ|подъ|объ|разъ)?[её]б(?:а|у|л|и|о|н|ё|ы|е|с|т|к)[а-яё]*", "giu"),
+  /долбо[её]б[а-яё]*/giu,
+  new RegExp(W + "бля(?!х)[а-яё]*", "giu"),
+  new RegExp(W + "муд(?:ак|ил|о[зх])[а-яё]*", "giu"),
+  /залуп[а-яё]*/giu, /г[ао]ндон[а-яё]*/giu,
+  new RegExp(W + "манд(?:а|ы|е|у|ой|ах?)(?![а-яё])", "giu"),
+  /\b(?:mother)?f+u+c+k[a-z]*/giu, /\bcunts?\b/giu, /\bnigg(?:a|er)s?\b/giu,
+  /[a-zа-яё][*#]{1,}[a-zа-яё*#]*/giu // уже зацензуренные слова: х**, f**k
+];
+const RUDE_RX = [
+  new RegExp(W + "су(?:ка|ки|ке|ку|чк|чар)[а-яё]*", "giu"), /шлюх[а-яё]*/giu, new RegExp(W + "сра(?:ть|л|н)[а-яё]*", "giu"),
+  new RegExp(W + "говн[а-яё]*", "giu"), new RegExp(W + "дерьм[а-яё]*", "giu"),
+  /\b(?:shit|bitch(?:es)?|asshole|bastard|whore|pussy|dick(?:head)?|damn)\b/giu
+];
+function maskWord(w) { w = w.replace(/^[^а-яёa-z*#]+/i, ""); return w.length <= 2 ? w[0] + "*" : w[0] + "*".repeat(Math.min(w.length - 1, 5)); }
+function scanText(text, level) {
+  if (!text || level === "off") return [];
+  const rxs = level === "rude" ? MAT_RX.concat(RUDE_RX) : MAT_RX;
+  const found = new Set();
+  for (const rx of rxs) for (const m of text.matchAll(rx)) found.add(maskWord(m[0].toLowerCase()));
+  return [...found];
+}
+
+async function fetchLyrics(t) {
+  const pick = arr => {
+    const ok = (arr || []).filter(x => x.plainLyrics || x.instrumental);
+    const best = pickBest(t, ok.map(x => ({ artist: x.artistName, title: x.trackName, x })));
+    return best ? best.x : null;
+  };
+  const get = async u => { const r = await fetch(u); if (!r.ok) throw new Error("lrclib " + r.status); return r.json(); };
+  let hit = null;
+  if (t.artist) hit = pick(await get(`https://lrclib.net/api/search?track_name=${encodeURIComponent(t.title)}&artist_name=${encodeURIComponent(t.artist)}`));
+  if (!hit) hit = pick(await get(`https://lrclib.net/api/search?q=${encodeURIComponent([t.artist, t.title].filter(Boolean).join(" "))}`));
+  return hit;
+}
+// пометка Explicit из каталога для уже сохранённых треков
+async function catalogExplicit(q) {
+  if (typeof q.explicit === "boolean") return q.explicit;
+  try {
+    if (q.source === "itunes" && q.ref) {
+      const d = await jsonp(`https://itunes.apple.com/lookup?id=${q.ref}&country=${q.country || "US"}`);
+      const r = d.results && d.results[0]; if (r) return r.trackExplicitness === "explicit";
+    }
+    if (q.source === "deezer" && q.ref) {
+      const d = await jsonp(`https://api.deezer.com/track/${q.ref}?output=jsonp`);
+      if (!d.error) return !!d.explicit_lyrics;
+    }
+  } catch {}
+  return undefined;
+}
+// результат: status clean | explicit | unknown, words — найденные слова (замаскированы), reasons — пояснения
+async function checkTrack(q, level) {
+  const reasons = []; let words = [];
+  const exp = await catalogExplicit(q);
+  if (typeof exp === "boolean") q.explicit = exp;
+  if (exp) reasons.push(`помечена как Explicit в ${q.source === "deezer" ? "Deezer" : "Apple Music"}`);
+  let lyricsChecked = false;
+  try {
+    const l = await fetchLyrics(q);
+    if (l) {
+      lyricsChecked = true;
+      words = scanText(l.plainLyrics || "", level);
+      if (words.length) reasons.push("в тексте: " + words.slice(0, 5).join(", "));
+    }
+  } catch { /* сервис текстов не ответил */ }
+  // каталоги часто не ставят Explicit русским трекам, поэтому «чисто» — только после проверки текста
+  const status = reasons.length ? "explicit" : lyricsChecked ? "clean" : "unknown";
+  if (status === "unknown") reasons.push("текст песни не найден");
+  return (q.mat = { status, words, reasons, level, at: Date.now() });
+}
+async function pool(items, n, fn) {
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length) { const k = i++; await fn(items[k], k); } }));
+}
+const matLine = (t, r) => `<div><b>${esc([t.artist, t.title].filter(Boolean).join(" — "))}</b> <span class="muted">· ${esc((r || t.mat).reasons.join("; ") || "не удалось проверить")}</span></div>`;
+
+let pl = { text: "", direct: {}, name: "" };
+function renderPlaylist() {
+  const target = state.plTarget ? quizById(state.plTarget) : null;
+  const app = $("#app");
+  app.innerHTML = `
+  <div class="stack">
+    <span class="label">${target ? `Добавить в «${esc(target.title)}»` : "Новый квиз"}</span>
+    <h1>Квиз из плейлиста</h1>
+
+    <section class="card stack">
+      <h2>1. Откуда взять треки</h2>
+      <form class="row" id="plUrlForm">
+        <input class="grow" type="url" id="plUrl" placeholder="Ссылка на плейлист Deezer или альбом Apple Music">
+        <button class="btn gold">Загрузить</button>
+      </form>
+      <div id="plUrlMsg"></div>
+      <div class="row" style="gap:8px"><span class="label">или вставьте список</span></div>
+      <textarea id="plText" rows="9" placeholder="Queen — Bohemian Rhapsody&#10;Земфира — Хочешь?&#10;Кино — Группа крови">${esc(pl.text)}</textarea>
+      <div class="row">
+        <button class="btn" id="plParse">Разобрать список</button>
+        <label class="btn ghost" for="plFile">Загрузить .txt / .csv</label>
+        <input type="file" id="plFile" accept=".txt,.csv,text/plain,text/csv" hidden>
+        <button class="btn ghost sm" id="plSwap" title="Если исполнитель и название перепутались местами">⇄ Поменять местами</button>
+      </div>
+      <details class="note">
+        <summary style="cursor:pointer;color:var(--fg);font-weight:600">Как перенести плейлист из Яндекс Музыки, Spotify, VK или Звука</summary>
+        <div class="stack" style="gap:8px;margin-top:10px">
+          <p class="hint"><b>Скопировать со страницы.</b> Откройте плейлист в браузере на компьютере и прокрутите его до конца, чтобы подгрузились все треки. Выделите список мышью от первого трека до последнего, скопируйте и вставьте сюда. Мелодика сама найдёт названия и исполнителей. Проверьте результат в поле выше.</p>
+          <p class="hint"><b>Через сервис переноса.</b> <a href="https://www.tunemymusic.com" target="_blank" rel="noopener">TuneMyMusic</a> и <a href="https://soundiiz.com" target="_blank" rel="noopener">Soundiiz</a> умеют выгружать плейлисты Яндекс Музыки, Spotify, VK и других в файл CSV или TXT. Загрузите этот файл кнопкой выше.</p>
+          <p class="hint"><b>Вручную.</b> Каждая строка — «Исполнитель — Название».</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="card stack" id="plStep2" hidden>
+      <h2>2. Настройка квиза</h2>
+      <p class="hint" id="plCount"></p>
+      <div class="settings">
+        ${target ? "" : `<label class="field" style="grid-column:1/-1"><span class="label">Название</span><input type="text" id="plName"></label>`}
+        <label class="field"><span class="label">Сколько вопросов</span>
+          <select id="plN"><option value="0">Все треки</option>${[5,10,15,20,30,50].map(n => `<option value="${n}" ${n === 10 ? "selected" : ""}>${n} случайных</option>`).join("")}</select></label>
+        <label class="field"><span class="label">Что угадывать</span>
+          <select id="plAsk">${Object.entries(ASK).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}<option value="mix">Вперемешку</option></select></label>
+        <label class="field"><span class="label">Где искать звук</span>
+          <select id="plSrc"><option value="deezer,itunes">Deezer, затем Apple</option><option value="itunes,deezer">Apple, затем Deezer</option><option value="itunes">Только Apple</option><option value="deezer">Только Deezer</option></select></label>
+        <label class="field"><span class="label">Страна для Apple</span>
+          <select id="plCountry">${["US","RU","FI","DE","GB","KZ","UA"].map(c => `<option ${c === (localStorageGet("melodika.country") || "US") ? "selected" : ""}>${c}</option>`).join("")}</select></label>
+        <label class="field"><span class="label">Мат</span>
+          <select id="plClean">${Object.entries(CLEAN_LEVELS).map(([k, v]) => `<option value="${k}" ${k === (target?.clean || "off") ? "selected" : ""}>${v}</option>`).join("")}</select></label>
+      </div>
+      <label class="row" style="gap:8px" id="plStrictRow"><input type="checkbox" id="plStrict"> Убирать и те песни, текст которых не удалось найти</label>
+      <p class="hint" id="plCleanHint">Тексты песен проверяются через открытую базу LRCLIB, плюс учитывается пометка Explicit в каталогах. Песни с матом не попадут в квиз, а в конце вы увидите, какие удалены и почему.</p>
+      <div class="row"><button class="btn gold" id="plBuild">Собрать квиз</button></div>
+      <div id="plProgress" class="stack" style="gap:8px"></div>
+    </section>
+  </div>`;
+  $("#topActions").innerHTML = `<button class="btn sm ghost" id="plBack">${target ? "К редактору" : "Назад"}</button>`;
+  $("#plBack").onclick = () => target ? go("edit", { editId: target.id }) : go("home");
+
+  let parsed = [];
+  const showParsed = list => {
+    parsed = list;
+    $("#plStep2").hidden = !list.length;
+    if (!list.length) return toast("Не нашли в списке ни одного трека");
+    $("#plText").value = pl.text = list.map(t => t.artist ? `${t.artist} — ${t.title}` : t.title).join("\n");
+    $("#plCount").textContent = `Найдено ${list.length} ${plural(list.length, "трек", "трека", "треков")}. Если что-то разобралось неверно, поправьте список и нажмите «Разобрать» ещё раз.`;
+    if ($("#plName") && !$("#plName").value) $("#plName").value = pl.name || "Мой плейлист";
+  };
+  const syncClean = () => { const off = $("#plClean").value === "off"; $("#plStrictRow").hidden = off; $("#plCleanHint").hidden = off; };
+  $("#plClean").onchange = syncClean; syncClean();
+  $("#plText").oninput = e => pl.text = e.target.value;
+  $("#plParse").onclick = () => { pl.direct = {}; showParsed(parseTrackList($("#plText").value)); };
+  $("#plSwap").onclick = () => { showParsed(parseTrackList($("#plText").value).map(t => ({ artist: t.title, title: t.artist })).filter(t => t.title)); };
+  $("#plFile").onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    pl.name = f.name.replace(/\.[^.]+$/, "");
+    pl.direct = {};
+    showParsed(parseTrackList(await f.text()));
+    e.target.value = "";
+  };
+  $("#plUrlForm").onsubmit = async e => {
+    e.preventDefault();
+    const url = $("#plUrl").value.trim(); if (!url) return;
+    const msg = $("#plUrlMsg");
+    msg.innerHTML = `<p class="hint">Загружаем…</p>`;
+    try {
+      const r = await loadPlaylistUrl(url);
+      if (!r) { msg.innerHTML = `<div class="note">${esc(playlistHint(url))} Скопируйте список треков со страницы плейлиста и вставьте его в поле ниже — подсказка под полем.</div>`; return; }
+      pl.name = r.name || ""; pl.direct = {};
+      r.tracks.forEach(t => pl.direct[norm(t.artist) + "|" + norm(t.title)] = t);
+      msg.innerHTML = `<p class="hint" style="color:var(--ok)">Загружено: «${esc(r.name || "плейлист")}», ${r.tracks.length} ${plural(r.tracks.length, "трек", "трека", "треков")}.</p>`;
+      if ($("#plName")) $("#plName").value = r.name || "";
+      showParsed(r.tracks);
+      pl.direct = {}; r.tracks.forEach(t => pl.direct[norm(t.artist) + "|" + norm(t.title)] = t);
+    } catch (err) { msg.innerHTML = `<p class="hint" style="color:var(--bad)">${esc(err.message)}</p>`; }
+  };
+
+  $("#plBuild").onclick = async () => {
+    // список могли поправить руками — берём актуальный
+    const list = parseTrackList($("#plText").value);
+    if (!list.length) return toast("Список пуст");
+    const n = +$("#plN").value, askSel = $("#plAsk").value;
+    const order = $("#plSrc").value.split(","), country = $("#plCountry").value;
+    localStorageSet("melodika.country", country);
+    const level = $("#plClean").value, strict = $("#plStrict").checked;
+    const pool = shuffle(list);
+    const want = n ? Math.min(n, list.length) : list.length;
+    const prog = $("#plProgress");
+    prog.innerHTML = `<div class="timer"><i id="plBar" style="transform:scaleX(0)"></i></div><p class="hint" id="plStatus">Ищем звук для треков…</p>`;
+    $("#plBuild").disabled = true;
+    const found = [], missed = [], removed = [];
+    let idx = 0, checked = 0;
+    const askFor = i => askSel === "mix" ? ["track", "artist", "title"][i % 3] : askSel;
+    async function worker() {
+      while (found.length < want && idx < pool.length) {
+        const t = pool[idx++];
+        let hit = pl.direct[norm(t.artist) + "|" + norm(t.title)] || null;
+        for (const src of order) {
+          if (hit) break;
+          try {
+            const res = await SOURCES[src].search(`${t.artist} ${t.title}`.trim(), country);
+            const b = pickBest(t, res);
+            if (b) { const { preview, ...rest } = b; hit = rest; }
+          } catch { /* источник не ответил — пробуем следующий */ }
+        }
+        checked++;
+        if (hit && level !== "off" && found.length < want) {
+          const cand = { ...hit, artist: t.artist || hit.artist, title: t.title || hit.title };
+          $("#plStatus") && ($("#plStatus").textContent = `Проверяем текст: ${cand.artist} — ${cand.title}`);
+          const r = await checkTrack(cand, level);
+          if (r.status === "explicit" || (strict && r.status === "unknown")) { removed.push(cand); hit = null; t.skip = true; }
+          else hit = cand;
+        }
+        if (hit && found.length < want) found.push({ ...hit, artist: t.artist || hit.artist, title: t.title || hit.title });
+        else if (!hit && !t.skip) missed.push(t);
+        $("#plBar") && ($("#plBar").style.transform = `scaleX(${Math.min(1, found.length / want)})`);
+        $("#plStatus") && ($("#plStatus").textContent = `Найдено ${found.length} из ${want} · проверено ${checked}`);
+      }
+    }
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    $("#plBuild").disabled = false;
+    if (!found.length) {
+      prog.innerHTML = `<div class="note">Ни один трек не нашёлся в каталогах. Проверьте, что в строках есть и исполнитель, и название, или попробуйте другую страну для Apple.</div>`;
+      return;
+    }
+    const questions = found.map((t, i) => ({ id: uid(), start: 0, ...t, ask: askFor(i) }));
+    let qz = target;
+    if (qz) { qz.questions.push(...questions); if (level !== "off") qz.clean = level; }
+    else {
+      qz = { id: uid(), title: ($("#plName")?.value || "").trim() || "Квиз из плейлиста", fragment: 15, timer: 20, created: Date.now(), questions, clean: level };
+      state.quizzes.unshift(qz);
+    }
+    saveQuizzes();
+    pl = { text: "", direct: {}, name: "" };
+    prog.innerHTML = `
+      <p style="margin:0;color:var(--ok);font-weight:600">Готово: ${found.length} ${plural(found.length, "вопрос", "вопроса", "вопросов")} в квизе «${esc(qz.title)}».</p>
+      ${found.length < want ? `<p class="hint">В плейлисте не хватило подходящих песен до ${want}.</p>` : ""}
+      ${removed.length ? `<div class="note" style="border-left-color:var(--bad)"><b style="color:var(--fg)">Удалили ${removed.length} ${plural(removed.length, "песню", "песни", "песен")} из-за мата:</b><div class="stack" style="gap:4px;margin-top:8px;font-size:14px">${removed.map(t => matLine(t)).join("")}</div></div>` : (level !== "off" ? `<p class="hint">Мата не нашли — все песни прошли проверку.</p>` : "")}
+      ${missed.length ? `<details class="note"><summary style="cursor:pointer">Не нашлись в каталогах: ${missed.length}</summary><p class="hint" style="margin-top:8px">${missed.slice(0, 60).map(t => esc([t.artist, t.title].filter(Boolean).join(" — "))).join("<br>")}${missed.length > 60 ? "<br>…" : ""}</p></details>` : ""}
+      <div class="row"><button class="btn gold" id="plPlay">Играть</button><button class="btn" id="plEdit">Открыть в редакторе</button></div>`;
+    $("#plPlay").onclick = () => go("setup", { editId: qz.id });
+    $("#plEdit").onclick = () => go("edit", { editId: qz.id });
+  };
+  if (pl.text) showParsed(parseTrackList(pl.text));
+}
+
+/* ================= старт ================= */
+function checkHash() {
+  const m = location.hash.match(/^#quiz=([\w-]+)/);
+  if (!m) return false;
+  try { importQuiz(decodeQuiz(m[1])); } catch { toast("Ссылка на квиз повреждена"); }
+  history.replaceState(null, "", location.pathname + location.search);
+  return true;
+}
+window.addEventListener("hashchange", checkHash);
+(async () => { if (!checkHash() && !(await loadPreset().catch(() => false))) render(); })();
+</script>
+</body>
+</html>
